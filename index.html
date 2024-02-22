@@ -142,8 +142,7 @@
     disconnectButton.addEventListener('click', disconnectDevice);
 
     // Write to the ESP32 LED Characteristic
-    onButton.addEventListener('click', () => writeOnCharacteristic('A1B2C3D4280074B279052F0E58C1FF1694CAC7C0DA69BF301D7B048A24A813914E476CFCA189F75D
-'));
+    onButton.addEventListener('click', () => writeOnCharacteristic(A1B2C3D4280074B279052F0E58C1FF1694CAC7C0DA69BF301D7B048A24A813914E476CFCA189F75D));
     offButton.addEventListener('click', () => writeOnCharacteristic(0));
 
     // Check if BLE is available in your Browser
