@@ -142,7 +142,8 @@
     disconnectButton.addEventListener('click', disconnectDevice);
 
     // Write to the ESP32 LED Characteristic
-    onButton.addEventListener('click', () => writeOnCharacteristic(1));
+    onButton.addEventListener('click', () => writeOnCharacteristic('A1B2C3D4280074B279052F0E58C1FF1694CAC7C0DA69BF301D7B048A24A813914E476CFCA189F75D
+'));
     offButton.addEventListener('click', () => writeOnCharacteristic(0));
 
     // Check if BLE is available in your Browser
@@ -177,11 +178,11 @@
         })
         .then(service => {
             bleServiceFound = service;
-            console.log("Service discovered:", service.uuid);
+            console.log("Service discovered:", service.uuid, service);
             return service.getCharacteristic(sensorCharacteristic);
         })
         .then(characteristic => {
-            console.log("Characteristic discovered:", characteristic.uuid);
+            console.log("Characteristic discovered:", characteristic.uuid, characteristic);
             sensorCharacteristicFound = characteristic;
             characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicChange);
             characteristic.startNotifications();
@@ -218,7 +219,7 @@
         if (bleServer && bleServer.connected) {
             bleServiceFound.getCharacteristic(ledCharacteristic)
             .then(characteristic => {
-                console.log("Found the LED characteristic: ", characteristic.uuid);
+                console.log("Found the LED characteristic: ", characteristic.uuid, characteristic);
                 const data = new Uint8Array([value]);
                 return characteristic.writeValue(data);
             })
