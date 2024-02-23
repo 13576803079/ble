@@ -125,12 +125,12 @@
     var bleService = '0000fff0-0000-1000-8000-00805f9b34fb'
     var ledCharacteristic = '0000fff1-0000-1000-8000-00805f9b34fb';
     var sensorCharacteristic= '0000fff4-0000-1000-8000-00805f9b34fb';
+    var deviceWrite = 'A1B2C3D42800A87A5038240EC962EBA757DE77FBDD25711967851FE8ACD28A3147D1365C75EAF723'
 
     //Global Variables to Handle Bluetooth
     var bleServer;
     var bleServiceFound;
     var sensorCharacteristicFound;
-    var deviceWrite = 'A1B2C3D4280074B279052F0E58C1FF1694CAC7C0DA69BF301D7B048A24A813914E476CFCA189F75D'
 
     // Connect Button (search for BLE Devices only if BLE is available)
     connectButton.addEventListener('click', (event) => {
@@ -182,19 +182,25 @@
             return service.getCharacteristic(sensorCharacteristic);
         })
         .then(characteristic => {
-            console.log("Characteristic discovered:", characteristic.uuid, characteristic);
+            
             sensorCharacteristicFound = characteristic;
-            characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicChange);
-            characteristic.startNotifications();
-            console.log("Notifications Started.");
-            return characteristic.readValue();
+            // characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicChange);
+            // characteristic.startNotifications();
+            // console.log("Notifications Started.");
+            // console.log("Characteristic discovered:", characteristic.uuid, characteristic);
+            return characteristic.startNotifications().then(() => {
+                console.log("Notifications Started.");
+                characteristic.addEventListener('characteristicvaluechanged', handleCharacteristicChange);
+                console.log("Characteristic discovered:", sensorCharacteristicFound.uuid, characteristic);
+            });
+            // return characteristic.readValue();
         })
-        .then(value => {
-            console.log("Read value: ", value);
-            const decodedValue = new TextDecoder().decode(value);
-            console.log("Decoded value: ", decodedValue);
-            retrievedValue.innerHTML = decodedValue;            
-        })
+        // .then(value => {
+        //     console.log("Read value: ", value);
+        //     const decodedValue = new TextDecoder().decode(value);
+        //     console.log("Decoded value: ", decodedValue);
+        //     retrievedValue.innerHTML = decodedValue;            
+        // })
         .catch(error => {
             console.log('Error: ', error);
         })
@@ -215,13 +221,55 @@
         timestampContainer.innerHTML = getDateTime();
     }
 
+    async function writeData(characteristic, data) {
+        let offset = 0;
+        let bytesPerWrite = 20;
+        
+        while (offset < data.byteLength) {
+            let chunk = data.slice(offset, offset + bytesPerWrite);
+            await characteristic.writeValue(chunk);
+            offset += bytesPerWrite;
+        }
+    }
+    let maxWriteValueLength = 20; // 假设每次可以写20个字节，需根据实际情况来设置
+
+    // 将数据分成多个数据块
+    function splitDataIntoChunks(data, chunkSize) {
+        const chunks = [];
+        for (let i = 0; i < data.byteLength; i += chunkSize) {
+            chunks.push(data.slice(i, i + chunkSize));
+        }
+        return chunks;
+    }
+
+    // 向特性写数据的函数，使用队列以保持写操作有序
+    async function writeDataToDevice(characteristic, data) {
+        // // 获取特性的最大写入值长度
+        // if (characteristic.properties.writeWithoutResponse) {
+        //     maxWriteValueLength = await characteristic.writeValueWithResponse(new Uint8Array()); //测试获取最大长度
+        // } else {
+        //     maxWriteValueLength = await characteristic.writeValue(new Uint8Array());
+        // }
+        // console.log(maxWriteValueLength)
+        const chunks = splitDataIntoChunks(data, maxWriteValueLength);
+        for (const chunk of chunks) {
+            console.log(chunk, new TextDecoder().decode(chunk))
+            await characteristic.writeValue(chunk);
+        }
+        console.log(new TextDecoder().decode(data))
+    }
+
     function writeOnCharacteristic(value){
         if (bleServer && bleServer.connected) {
             bleServiceFound.getCharacteristic(ledCharacteristic)
             .then(characteristic => {
                 console.log("Found the LED characteristic: ", characteristic.uuid, characteristic);
-                const data = new Uint8Array([value]);
-                return characteristic.writeValue(data);
+                // const data = new Uint8Array([value]);
+                // // const data = Uint8Array.of(value)
+                // console.log(data, new TextEncoder().encode(value), new TextDecoder().decode(data))
+                
+                return writeDataToDevice(characteristic, new Uint8Array(new TextEncoder('utf-8').encode(value)))
+                // return characteristic.writeValue(new Uint8Array(new TextEncoder('utf-8').encode(value)));
             })
             .then(() => {
                 latestValueSent.innerHTML = value;
